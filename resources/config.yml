@@ -1,0 +1,2 @@
+# Gathers all loaded resource packs and encrypts them on server startup
+auto-encrypt-packs: true
