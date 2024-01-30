@@ -1,5 +1,6 @@
 # RPEncrypter
 A PocketMine-MP plugin that automatically encrypts all loaded resource packs.
+Just install the plugin and restart your server.
 
 ## API
 [`ResourcePackEncrypter::encrypt()`](https://github.com/Muqsit/RPEncrypter/blob/master/src/muqsit/rpencrypter/ResourcePackEncrypter.php) encrypts resource packs with the supplied encryption-key.
