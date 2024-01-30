@@ -81,8 +81,8 @@ final class Loader extends PluginBase{
 			$encrypted_pack_info = $encrypter->encryptZip($archive, $this->encryption_key, $file_encryption_keygen); // encrypt the pack
 			$stack[$index] = $encrypted_pack_info->pack; // replace with encrypted resource pack
 			$this->encrypted_pack_resources[] = $encrypted_pack_info->resource; // hold reference to encrypted pack file resource
-			$manager->setPackEncryptionKey($pack->getPackId(), $this->encryption_key); // store private key on server
-			$this->getLogger()->debug("Successfully encrypted resource pack {$pack->getPackName()} [{$pack->getPackId()}]");
+			$manager->setPackEncryptionKey($encrypted_pack_info->pack->getPackId(), $this->encryption_key); // store private key on server
+			$this->getLogger()->debug("Successfully encrypted resource pack {$encrypted_pack_info->pack->getPackName()} [{$encrypted_pack_info->pack->getPackId()}] (path: {$encrypted_pack_info->pack->getPath()})");
 		}
 
 		$manager->setResourceStack($stack);
