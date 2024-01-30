@@ -1,2 +1,7 @@
 # Gathers all loaded resource packs and encrypts them on server startup
 auto-encrypt-packs: true
+
+# Encryption key used to encrypt resource packs
+# Alternatively, visit https://1password.com/password-generator/ to generate a random 32-length password.
+# Comment this out to use your machine ID as the encryption key.
+#encryption-key: GWuh9EpjzzCCGX2YfwZ51j2GiwihTdCQ

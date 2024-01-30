@@ -8,15 +8,27 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\resourcepacks\ZippedResourcePack;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\utils\Utils;
+use RuntimeException;
 use ZipArchive;
+use function gettype;
+use function is_string;
 use function md5;
+use function strlen;
 
 final class Loader extends PluginBase{
+
+	/** @var non-empty-string */
+	private string $encryption_key;
 
 	/** @var list<resource> */
 	private array $encrypted_pack_resources = [];
 
 	protected function onEnable() : void{
+		$encryption_key = $this->getConfig()->get("encryption-key", $this->createEncryptionKey());
+		is_string($encryption_key) || throw new RuntimeException("Encryption key must be a string (received " . gettype($encryption_key) . ")");
+		strlen($encryption_key) === 32 || throw new RuntimeException("Encryption key must be 32 digits in length (received " . strlen($encryption_key) . ")");
+		$this->encryption_key = $encryption_key;
+
 		if($this->getConfig()->get("auto-encrypt-packs", true)){
 			$this->getScheduler()->scheduleDelayedTask(new ClosureTask($this->encryptLoadedPacks(...)), 1);
 		}
@@ -52,7 +64,6 @@ final class Loader extends PluginBase{
 		$manager = $this->getServer()->getResourcePackManager();
 		$stack = $manager->getResourceStack();
 
-		$encryption_key = $this->createEncryptionKey();
 		$file_encryption_keygen = $this->createEncryptionKeyForFile(...);
 
 		foreach($stack as $index => $pack){
@@ -67,10 +78,10 @@ final class Loader extends PluginBase{
 
 			$archive = new ZipArchive();
 			$archive->open($pack->getPath());
-			$encrypted_pack_info = $encrypter->encryptZip($archive, $encryption_key, $file_encryption_keygen); // encrypt the pack
+			$encrypted_pack_info = $encrypter->encryptZip($archive, $this->encryption_key, $file_encryption_keygen); // encrypt the pack
 			$stack[$index] = $encrypted_pack_info->pack; // replace with encrypted resource pack
 			$this->encrypted_pack_resources[] = $encrypted_pack_info->resource; // hold reference to encrypted pack file resource
-			$manager->setPackEncryptionKey($pack->getPackId(), $encryption_key); // store private key on server
+			$manager->setPackEncryptionKey($pack->getPackId(), $this->encryption_key); // store private key on server
 			$this->getLogger()->debug("Successfully encrypted resource pack {$pack->getPackName()} [{$pack->getPackId()}]");
 		}
 
