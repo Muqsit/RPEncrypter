@@ -20,7 +20,7 @@ $manager = $plugin->getServer()->getResourcePackManager();
 $stack = $manager->getResourceStack();
 $stack[] = $info->pack;
 $manager->setResourceStack($stack);
-$manager->setPackEncryptionKey($pack->getPackId(), $encryption_key);
+$manager->setPackEncryptionKey($info->pack->getPackId(), $encryption_key);
 
 // hold reference to encrypted file's resource throughout server runtime
 $plugin->encryptedResourcePackResource = $info->resource;
@@ -34,7 +34,7 @@ $machine_id = Utils::getMachineUniqueId()->getBytes();
 $encryption_key = md5($machine_id); // 32-byte encryption key
 ```
 
-Alternatively, generate a 32-length random string via [1Passoword](https://1password.com/password-generator/) and store it on your server somewhere.
+Alternatively, generate a 32-length random string via [1Password](https://1password.com/password-generator/) and store it on your server somewhere.
 ```php
 $encryption_key = "6]xFaeMs9b)UnybZ?raH]*)PJ.Jx!3:0";
 ```
