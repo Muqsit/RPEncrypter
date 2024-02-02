@@ -1,6 +1,10 @@
 # RPEncrypter
 A PocketMine-MP plugin that automatically encrypts all loaded resource packs.
 
+[![](https://poggit.pmmp.io/shield.state/RPEncrypter)](https://poggit.pmmp.io/p/RPEncrypter)
+[![](https://poggit.pmmp.io/shield.api/RPEncrypter)](https://poggit.pmmp.io/p/RPEncrypter)
+[![](https://poggit.pmmp.io/shield.dl.total/RPEncrypter)](https://poggit.pmmp.io/p/RPEncrypter)
+
 Just install the plugin and restart your server. All loaded resource packs (such as ones defined in your `resource_packs/resource_packs.yml`) will automatically be encrypted. This plugin uses your machine ID as the encryption key.
 
 ## API
