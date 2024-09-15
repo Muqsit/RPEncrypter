@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace muqsit\rpencrypter;
 
 use Closure;
+use DirectoryIterator;
 use InvalidArgumentException;
 use JsonException;
+use Logger;
 use pocketmine\resourcepacks\ZippedResourcePack;
 use pocketmine\utils\BinaryStream;
 use pocketmine\utils\Filesystem;
@@ -23,11 +25,12 @@ use function is_string;
 use function json_decode;
 use function json_encode;
 use function openssl_encrypt;
+use function rename;
 use function str_repeat;
-use function stream_get_meta_data;
 use function strlen;
 use function substr;
-use function tmpfile;
+use function tempnam;
+use function unlink;
 use const JSON_THROW_ON_ERROR;
 use const OPENSSL_RAW_DATA;
 
@@ -36,9 +39,26 @@ final class ResourcePackEncrypter{
 	public const MANIFEST_FILE = "manifest.json";
 	public const SKIP_ENCRYPTION = [self::MANIFEST_FILE, "pack_icon.png"];
 
+	public const TEMP_FILE_EXT = "rp-encrypter-temp";
+
 	public function __construct(
-		readonly public string $working_directory // directory used to store temp files when building resource packs
-	){}
+		readonly public string $working_directory, // directory used to store temp files when building resource packs
+		readonly private ?Logger $logger = null
+	){
+		$this->cleanupTempFiles();
+	}
+
+	public function cleanupTempFiles(): void{
+		foreach(new DirectoryIterator($this->working_directory) as $file){
+			if($file->isFile() && $file->getExtension() === self::TEMP_FILE_EXT){
+				$path = $file->getPathname();
+				if(!unlink($path)){
+					$relative_path = Path::makeRelative($path, $this->working_directory);
+					$this->logger?->warning("Failed to unlink unnecessary file {$relative_path}");
+				}
+			}
+		}
+	}
 
 	/**
 	 * Encrypts a resource pack that is in ZipArchive format.
@@ -62,9 +82,6 @@ final class ResourcePackEncrypter{
 
 	/**
 	 * Encrypts a supplied resource pack.
-	 * Note: This method returns an object holding a temporary file. If the temporary file goes out of scope, it is
-	 * automatically unlinked and renders the ZippedResourcePack broken. Make sure you store a reference to
-	 * {@see EncryptedResourcePackInfo::$resource} somewhere in memory to avoid this from happening.
 	 *
 	 * @param non-empty-string $directory a directory containing the resource pack - the method will auto-detect nested
 	 * resource packs.
@@ -88,9 +105,10 @@ final class ResourcePackEncrypter{
 		$manifest_dir !== null || throw new InvalidArgumentException("No manifest.json found");
 
 		// file to hold the encrypted pack (ZIP format)
-		$encrypted_pack_file = tmpfile();
-		$encrypted_pack_file !== false || throw new RuntimeException("Failed to create temporary file to store encrypted resource pack");
-		$encrypted_pack_path = stream_get_meta_data($encrypted_pack_file)["uri"];
+		$encrypted_pack_path = tempnam($this->working_directory, "RPE");
+		$encrypted_pack_path !== false || throw new RuntimeException("Failed to create temporary file to store encrypted resource pack");
+		rename($encrypted_pack_path, $encrypted_pack_path . "." . self::TEMP_FILE_EXT) || throw new RuntimeException("Failed to rename temporary file to store encrypted resource pack");
+		$encrypted_pack_path .= "." . self::TEMP_FILE_EXT;
 
 		$encrypted_zip = new ZipArchive();
 		$encrypted_zip->open($encrypted_pack_path, ZipArchive::OVERWRITE) === true || throw new RuntimeException("Failed to create zip archive");
@@ -160,6 +178,6 @@ final class ResourcePackEncrypter{
 		$encrypted_zip->addFromString("contents.json", $stream->getBuffer());
 
 		$encrypted_zip->close();
-		return new EncryptedResourcePackInfo(new ZippedResourcePack($encrypted_pack_path), $encrypted_pack_path, $encrypted_pack_file);
+		return new EncryptedResourcePackInfo(new ZippedResourcePack($encrypted_pack_path), $encrypted_pack_path);
 	}
 }

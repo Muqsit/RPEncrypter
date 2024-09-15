@@ -17,11 +17,14 @@ use function strlen;
 
 final class Loader extends PluginBase{
 
+	private ResourcePackEncrypter $encrypter;
+
 	/** @var non-empty-string */
 	private string $encryption_key;
 
-	/** @var list<resource> */
-	private array $encrypted_pack_resources = [];
+	protected function onLoad() : void{
+		$this->encrypter = new ResourcePackEncrypter($this->getDataFolder(), $this->getLogger());
+	}
 
 	protected function onEnable() : void{
 		$encryption_key = $this->getConfig()->get("encryption-key", $this->createEncryptionKey());
@@ -32,14 +35,6 @@ final class Loader extends PluginBase{
 		if($this->getConfig()->get("auto-encrypt-packs", true)){
 			$this->getScheduler()->scheduleDelayedTask(new ClosureTask($this->encryptLoadedPacks(...)), 1);
 		}
-	}
-
-	protected function onDisable() : void{
-		// References to tmpfile() resources must be held during runtime otherwise the
-		// ZippedResourcePack instances holding them will fail to read them during runtime.
-		// As these are tmpfile() resources, the file will be automatically deleted when they
-		// go out of reference (e.g., during plugin disable like we are doing below).
-		unset($this->encrypted_pack_resources);
 	}
 
 	/**
@@ -60,7 +55,6 @@ final class Loader extends PluginBase{
 	}
 
 	private function encryptLoadedPacks() : void{
-		$encrypter = new ResourcePackEncrypter($this->getDataFolder());
 		$manager = $this->getServer()->getResourcePackManager();
 		$stack = $manager->getResourceStack();
 
@@ -78,9 +72,8 @@ final class Loader extends PluginBase{
 
 			$archive = new ZipArchive();
 			$archive->open($pack->getPath());
-			$encrypted_pack_info = $encrypter->encryptZip($archive, $this->encryption_key, $file_encryption_keygen); // encrypt the pack
+			$encrypted_pack_info = $this->encrypter->encryptZip($archive, $this->encryption_key, $file_encryption_keygen); // encrypt the pack
 			$stack[$index] = $encrypted_pack_info->pack; // replace with encrypted resource pack
-			$this->encrypted_pack_resources[] = $encrypted_pack_info->resource; // hold reference to encrypted pack file resource
 			$manager->setPackEncryptionKey($encrypted_pack_info->pack->getPackId(), $this->encryption_key); // store private key on server
 			$this->getLogger()->debug("Successfully encrypted resource pack {$encrypted_pack_info->pack->getPackName()} [{$encrypted_pack_info->pack->getPackId()}] (path: {$encrypted_pack_info->pack->getPath()})");
 		}

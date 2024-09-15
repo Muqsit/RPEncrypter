@@ -9,14 +9,16 @@ Just install the plugin and restart your server. All loaded resource packs (such
 
 ## API
 [`ResourcePackEncrypter::encrypt()`](https://github.com/Muqsit/RPEncrypter/blob/master/src/muqsit/rpencrypter/ResourcePackEncrypter.php) encrypts resource packs with the supplied encryption-key.
+
 ```php
 /** @var PluginBase $plugin */
-$rp_path = $plugin->getDataFolder() . DIRECTORY_SEPARATOR . "MyResourcePack.zip";
 
 // encrypt MyResourcePack.zip
-$encrypter = new ResourcePackEncrypter($plugin->getDataFolder());
+$rp_path = $plugin->getDataFolder() . DIRECTORY_SEPARATOR . "MyResourcePack.zip";
 $encryption_key = openssl_random_pseudo_bytes(32, $strong_result);
 $file_encryption_keygen = fn(string $path, string $contents) => md5($path . $contents);
+
+$encrypter = new ResourcePackEncrypter($plugin->getDataFolder());
 $info = $encrypter->encryptZip(new ZipArchive($rp_path), $encryption_key, $file_encryption_keygen);
 
 // register encrypted resource pack
@@ -25,9 +27,6 @@ $stack = $manager->getResourceStack();
 $stack[] = $info->pack;
 $manager->setResourceStack($stack);
 $manager->setPackEncryptionKey($info->pack->getPackId(), $encryption_key);
-
-// hold reference to encrypted file's resource throughout server runtime
-$plugin->encryptedResourcePackResource = $info->resource;
 ```
 
 To generate static encryption keys (instead of random keys), consider using your machine ID.
